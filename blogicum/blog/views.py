@@ -1,7 +1,13 @@
+from django.contrib.auth import get_user_model
+from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
+from django.views.generic import DetailView
+
 
 from blog.models import Post, Category
+
+User = get_user_model()
 
 
 def get_posts(query_set):
@@ -35,3 +41,19 @@ def category_posts(request, category_slug):
         'category': category,
         'post_list': get_posts(category.posts)
     })
+
+
+class ProfileDetailView(DetailView):
+    model = User
+    template_name = 'blog/profile.html'
+    context_object_name = 'profile'
+
+    def get_object(self):
+        return get_object_or_404(User, username=self.kwargs['username'])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        context['posts'] = (
+            Post.objects.select_related('author').filter(author=user))
+        return context
