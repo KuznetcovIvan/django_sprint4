@@ -13,7 +13,7 @@ SECRET_KEY = 'django-insecure-vv^p@mbtf3p-s1me8f5skmuo51=dm!9%9!najjo&5c1#$75$9v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 # Application definition
@@ -39,6 +39,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
 
 ROOT_URLCONF = 'blogicum.urls'
 
