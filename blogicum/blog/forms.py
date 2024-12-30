@@ -1,5 +1,8 @@
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
+from django import forms
+
+from .models import Post
 
 User = get_user_model()
 
@@ -14,4 +17,13 @@ class ProfileForms(UserCreationForm):
                   'password1',
                   'password2',
                   'first_name',
-                  'last_name'] 
+                  'last_name']
+
+
+class PostForms(forms.ModelForm):
+    class Meta:
+        model = Post
+        exclude = ('author', 'is_published')
+        widgets = {
+            'pub_date': forms.DateInput(attrs={'type': 'date'})
+        }

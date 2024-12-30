@@ -8,6 +8,17 @@ urlpatterns = [
     path('',
          views.index,
          name='index'),
+
+    path('posts/create/',
+         views.PostCreateView.as_view(),
+         name='create_post'),
+    path('posts/<int:post_id>/edit',
+         views.PostUpdateView.as_view(),
+         name='edit_post'),
+    path('posts/<int:post_id>/delete',
+         views.PostDeleteView.as_view(),
+         name='delete_post'),
+
     path('posts/<int:post_id>/',
          views.post_detail,
          name='post_detail'),
@@ -17,7 +28,7 @@ urlpatterns = [
     path('profile/<str:username>/',
          views.ProfileDetailView.as_view(),
          name='profile'),
-    path('profile/<str:username>/edit',
+    path('profile/<str:username>/edit/',
          views.EditProfile.as_view(),
-         name='edit_profile')
+         name='edit_profile'),
 ]
