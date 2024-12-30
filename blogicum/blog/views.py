@@ -40,7 +40,12 @@ def index(request):
 
 
 def post_detail(request, post_id):
-    post = get_object_or_404(get_posts(Post.objects), pk=post_id)
+    post = get_object_or_404(Post.objects.select_related(
+        'author',
+        'location',
+        'category'), pk=post_id)
+    if post.author != request.user:
+        post = get_object_or_404(get_posts(Post.objects), pk=post_id)
     return render(request, 'blog/detail.html', {
         'post': post,
         'form': CommentForm(),
@@ -74,14 +79,15 @@ class ProfileDetailView(DetailView):
         context['form'] = CommentForm()
         context['comment'] = (
             self.object.comments.select_related('author')).all()
-        context['page_obj'] = Paginator(Post.objects.select_related(
-            'author',
-            'location',
-            'category'
-        ).filter(
-            author=self.get_object()), 10).get_page(
-                self.request.GET.get('page'))
 
+        if self.request.user == self.object:
+            posts = Post.objects.filter(author=self.object).select_related(
+                'author', 'location', 'category')
+        else:
+            posts = get_posts(Post.objects).filter(author=self.get_object())
+
+        context['page_obj'] = Paginator(posts, 10).get_page(
+            self.request.GET.get('page'))
         return context
 
 
@@ -113,13 +119,15 @@ def create_post(request, post_id=None):
         post = form.save(commit=False)
         post.author = request.user
         post.save()
-        return redirect('blog:post_detail', post_id=post.id)
+        return redirect('blog:profile', username=request.user.username)
     return render(request, 'blog/create.html', context)
 
 
 @login_required
 def delete_post(request, post_id=None):
     instance = get_object_or_404(Post, pk=post_id)
+    if instance.author != request.user:
+        return redirect('blog:post_detail', post_id=post_id)
     form = PostForm(instance=instance)
     context = {'form': form}
     if request.method == 'POST':
