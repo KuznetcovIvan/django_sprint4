@@ -91,13 +91,13 @@ class ProfileDetailView(DetailView):
         return context
 
 
-class EditProfile(LoginRequiredMixin, UpdateView):
+class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = User
     form_class = ProfileForm
     template_name = 'registration/registration_form.html'
 
     def get_object(self):
-        return get_object_or_404(User, username=self.kwargs['username'])
+        return self.request.user
 
     def get_success_url(self):
         return reverse(
