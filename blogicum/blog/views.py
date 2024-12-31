@@ -91,10 +91,10 @@ class ProfileDetailView(DetailView):
         return context
 
 
-class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
+class EditProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = User
     form_class = ProfileForm
-    template_name = 'registration/registration_form.html'
+    template_name = 'blog/user.html'
 
     def get_object(self):
         return self.request.user
@@ -102,6 +102,9 @@ class EditProfileUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse(
             'blog:profile', kwargs={'username': self.request.user.username})
+
+    def test_func(self):
+        return self.get_object() == self.request.user
 
 
 @login_required
