@@ -3,6 +3,8 @@ from django.db import models
 
 
 User = get_user_model()
+COMMENTS_NAME = 'comments'
+POSTS_NAME = 'posts'
 
 
 class PublishedModel(models.Model):
@@ -65,7 +67,7 @@ class Post(PublishedModel):
     author = models.ForeignKey(
         User, on_delete=models.CASCADE,
         verbose_name='Автор публикации',
-        related_name='posts'
+        related_name=POSTS_NAME
     )
     location = models.ForeignKey(
         Location,
@@ -73,14 +75,14 @@ class Post(PublishedModel):
         null=True,
         blank=True,
         verbose_name='Местоположение',
-        related_name='posts'
+        related_name=POSTS_NAME
     )
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
         null=True,
         verbose_name='Категория',
-        related_name='posts'
+        related_name=POSTS_NAME
     )
     image = models.ImageField('Фото', upload_to='post_images', blank=True)
 
@@ -102,12 +104,14 @@ class Comment(models.Model):
     post = models.ForeignKey(
         Post,
         on_delete=models.CASCADE,
-        related_name='comments',
+        related_name=COMMENTS_NAME,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE,
-        related_name='comments')
+        User,
+        on_delete=models.CASCADE,
+        related_name=COMMENTS_NAME,
+    )
 
     class Meta:
         ordering = ('created_at',)

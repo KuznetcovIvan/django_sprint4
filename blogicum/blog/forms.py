@@ -1,34 +1,29 @@
-from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import get_user_model
 from django import forms
+from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm
 
 from .models import Comment, Post
 
 User = get_user_model()
 
 
-class ProfileForm(UserCreationForm):
+class ProfileFormMixin():
     class Meta:
         model = User
         fields = ['username',
                   'first_name',
                   'last_name',
-                  'email',
-                  'password1',
-                  'password2',
-                  'first_name',
-                  'last_name']
+                  'email']
+
+
+class ProfileForm(UserCreationForm):
+    class Meta(ProfileFormMixin.Meta):
+        fields = ProfileFormMixin.Meta.fields + ['password1', 'password2']
 
 
 class EditProfileForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = ['username',
-                  'first_name',
-                  'last_name',
-                  'email',
-                  'first_name',
-                  'last_name']
+    class Meta(ProfileFormMixin.Meta):
+        pass
 
 
 class PostForm(forms.ModelForm):
