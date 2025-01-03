@@ -8,14 +8,12 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 
 from .models import Post, Category, Comment
-from .forms import ProfileForm, PostForm, CommentForm
+from .forms import ProfileForm, PostForm, CommentForm, EditProfileForm
 
 User = get_user_model()
 
 
 class OnlyAuthorMixin(UserPassesTestMixin):
-    '''Миксин для проверки авторства'''
-
     def test_func(self):
         object = self.get_object()
         return object.author == self.request.user
@@ -79,7 +77,6 @@ class ProfileDetailView(DetailView):
         context['form'] = CommentForm()
         context['comment'] = (
             self.object.comments.select_related('author')).all()
-
         if self.request.user == self.object:
             posts = Post.objects.filter(author=self.object).select_related(
                 'author', 'location', 'category')
@@ -91,16 +88,18 @@ class ProfileDetailView(DetailView):
         return context
 
 
-class EditProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class EditProfileUpdateView(LoginRequiredMixin,
+                            UserPassesTestMixin,
+                            UpdateView):
     model = User
-    form_class = ProfileForm
+    form_class = EditProfileForm
     template_name = 'blog/user.html'
 
     def get_object(self):
         return self.request.user
 
     def get_success_url(self):
-        return reverse(
+        return reverse_lazy(
             'blog:profile', kwargs={'username': self.request.user.username})
 
     def test_func(self):

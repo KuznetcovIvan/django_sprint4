@@ -20,6 +20,17 @@ class ProfileForm(UserCreationForm):
                   'last_name']
 
 
+class EditProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username',
+                  'first_name',
+                  'last_name',
+                  'email',
+                  'first_name',
+                  'last_name']
+
+
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post
