@@ -5,8 +5,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, UpdateView, View
+from django.urls import reverse
+from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 
 from .forms import PostForm, CommentForm, EditProfileForm
 from .models import Category, Comment, Post, User
@@ -22,14 +22,22 @@ def get_posts(*args, **kwargs):
         comment_count=Count('comments')).filter(**kwargs).order_by('-pub_date')
 
 
+def get_paginator(request, queryset,
+                  number_of_pages=10):
+    paginator = Paginator(queryset, number_of_pages)
+    page_number = request.GET.get('page')
+    return paginator.get_page(page_number)
+
+
 def index(request):
-    paginator = Paginator(
-        get_posts('author', 'location', 'category',
-                  is_published=True,
-                  category__is_published=True,
-                  pub_date__lte=datetime.now()), 10)
-    return render(request, 'blog/index.html',
-                  {'page_obj': paginator.get_page(request.GET.get('page'))})
+    return render(request, 'blog/index.html', {
+        'page_obj': get_paginator(request, get_posts(
+            'author',
+            'location',
+            'category',
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=datetime.now()), 10)})
 
 
 def post_detail(request, post_id):
@@ -47,20 +55,19 @@ def post_detail(request, post_id):
 
 
 def category_posts(request, category_slug):
-    category = get_object_or_404(
-        Category,
-        slug=category_slug,
-        is_published=True)
+    category = get_object_or_404(Category,
+                                 slug=category_slug,
+                                 is_published=True)
     return render(request, 'blog/category.html', {
         'category': category,
-        'page_obj': Paginator(
-            get_posts('author', 'location', 'category',
-                      category=category,
-                      is_published=True,
-                      pub_date__lte=datetime.now(),
-                      ), 10).get_page(
-            request.GET.get('page'))
-    })
+        'page_obj': get_paginator(
+            request, get_posts(
+                'author',
+                'location',
+                'category',
+                category=category,
+                is_published=True,
+                pub_date__lte=datetime.now()), 10)})
 
 
 class ProfileDetailView(DetailView):
@@ -76,12 +83,13 @@ class ProfileDetailView(DetailView):
             **kwargs,
             form=CommentForm(),
             comment=self.object.comments.select_related('author').all(),
-            page_obj=Paginator(
-                self.object.posts.select_related(
-                    'author', 'location', 'category'
-                ).annotate(
-                    comment_count=Count('comments')).order_by('-pub_date'), 10
-            ).get_page(self.request.GET.get('page')))
+            page_obj=get_paginator(
+                self.request,
+                self.object.posts.select_related('author',
+                                                 'location',
+                                                 'category')
+                .annotate(comment_count=Count('comments'))
+                .order_by('-pub_date'), 10))
 
 
 class EditProfileUpdateView(LoginRequiredMixin,
