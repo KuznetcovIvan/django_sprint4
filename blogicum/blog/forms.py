@@ -1,24 +1,22 @@
 from django import forms
-from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 
-from .models import Comment, Post
-
-User = get_user_model()
+from .models import Comment, Post, User
 
 
 class ProfileFormMixin():
     class Meta:
         model = User
-        fields = ['username',
+        fields = ('username',
                   'first_name',
                   'last_name',
-                  'email']
+                  'email')
 
 
 class ProfileForm(UserCreationForm):
     class Meta(ProfileFormMixin.Meta):
-        fields = ProfileFormMixin.Meta.fields + ['password1', 'password2']
+        fields: tuple = ProfileFormMixin.Meta.fields + ('password1',
+                                                        'password2')
 
 
 class EditProfileForm(forms.ModelForm):

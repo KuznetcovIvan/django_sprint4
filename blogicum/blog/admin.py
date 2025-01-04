@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from blog.models import Category, Location, Post
+from blog.models import Category, Comment, Location, Post
 
 
 admin.site.empty_value_display = 'Не задано'
@@ -11,23 +11,25 @@ class PostInline(admin.TabularInline):
     extra = 0
 
 
+@admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = (
         'title',
         'description',
         'slug',
-        'is_published'
+        'is_published',
     )
     list_editable = (
         'description',
         'slug',
-        'is_published'
+        'is_published',
     )
     search_fields = ('title',)
     list_display_links = ('title',)
-    inlines = (PostInline, )
+    inlines = (PostInline,)
 
 
+@admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
     list_display = (
         'name',
@@ -38,9 +40,10 @@ class LocationAdmin(admin.ModelAdmin):
     )
     search_fields = ('name',)
     list_display_links = ('name',)
-    inlines = (PostInline, )
+    inlines = (PostInline,)
 
 
+@admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
     list_display = (
         'title',
@@ -65,10 +68,26 @@ class PostAdmin(admin.ModelAdmin):
         'location',
         'created_at',
         'pub_date',
-        'is_published')
+        'is_published',
+    )
     list_display_links = ('title',)
 
 
-admin.site.register(Category, CategoryAdmin)
-admin.site.register(Location, LocationAdmin)
-admin.site.register(Post, PostAdmin)
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    list_display = (
+        'post',
+        'text',
+        'author',
+        'created_at',
+    )
+    list_editable = (
+        'text',
+        'author',
+    )
+    search_fields = ('text',)
+    list_filter = (
+        'author',
+        'created_at',
+    )
+    list_display_links = ('post',)
