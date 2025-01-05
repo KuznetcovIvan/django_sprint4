@@ -11,11 +11,6 @@ from .forms import PostForm, CommentForm, EditProfileForm
 from .models import Category, Comment, Post, User
 
 
-class OnlyAuthorMixin(UserPassesTestMixin):
-    def test_func(self):
-        return self.get_object().author == self.request.user
-
-
 def get_posts(posts=Post.objects, related=True, filter=True, annotate=True):
     if related:
         posts = posts.select_related('author', 'category', 'location')
@@ -123,7 +118,7 @@ def edit_post(request, post_id):
     return render(request, 'blog/create.html', {'form': form})
 
 
-@ login_required
+@login_required
 def delete_post(request, post_id=None):
     instance = get_object_or_404(Post, pk=post_id)
     if instance.author != request.user:
@@ -143,11 +138,12 @@ class CommentMixin:
     def get_success_url(self):
         return reverse('blog:post_detail', args=[self.kwargs['post_id']])
 
+
+class AuthorPermissionMixin:
     def dispatch(self, request, *args, **kwargs):
-        if self.pk_url_kwarg in kwargs:
-            if self.request.user != self.get_object().author:
-                return redirect('blog:post_detail',
-                                post_id=self.kwargs['post_id'])
+        if self.request.user != self.get_object().author:
+            return redirect('blog:post_detail',
+                            post_id=self.kwargs['post_id'])
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -160,9 +156,11 @@ class CommentCreateView(CommentMixin, LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class CommentUpdateView(CommentMixin, LoginRequiredMixin, UpdateView):
+class CommentUpdateView(AuthorPermissionMixin, CommentMixin,
+                        LoginRequiredMixin, UpdateView):
     form_class = CommentForm
 
 
-class CommentDeleteView(CommentMixin, LoginRequiredMixin, DeleteView):
+class CommentDeleteView(AuthorPermissionMixin, CommentMixin,
+                        LoginRequiredMixin, DeleteView):
     pass

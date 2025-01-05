@@ -14,21 +14,21 @@ SECRET_KEY = 'django-insecure-vv^p@mbtf3p-s1me8f5skmuo51=dm!9%9!najjo&5c1#$75$9v
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
+INTERNAL_IPS = ['127.0.0.1',] 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'blog.apps.BlogConfig',
-    'pages.apps.PagesConfig',
-    'django_bootstrap5',
-
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_bootstrap5',
+    'debug_toolbar',
+    'blog.apps.BlogConfig',
+    'pages.apps.PagesConfig',
 ]
 
 MIDDLEWARE = [
@@ -39,6 +39,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 CSRF_FAILURE_VIEW = 'pages.views.csrf_failure'
