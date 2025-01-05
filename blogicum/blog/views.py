@@ -1,11 +1,10 @@
-from datetime import datetime
-
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Count
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 
 from .forms import PostForm, CommentForm, EditProfileForm
@@ -24,7 +23,7 @@ def get_posts(posts=Post.objects, related=True, filter=True, annotate=True):
         posts = posts.filter(
             is_published=True,
             category__is_published=True,
-            pub_date__lte=datetime.now()
+            pub_date__lte=timezone.now()
         )
     if annotate:
         posts = posts.annotate(
@@ -44,10 +43,10 @@ def index(request):
 
 
 def post_detail(request, post_id):
-    post = get_object_or_404(
-        Post.objects, pk=post_id)
+    post = get_object_or_404(Post, pk=post_id)
     if post.author != request.user:
-        post = get_object_or_404(get_posts(related=False, annotate=False))
+        post = get_object_or_404(
+            get_posts(related=False, annotate=False), pk=post_id)
     return render(request, 'blog/detail.html', {
         'post': post,
         'form': CommentForm(),
@@ -74,15 +73,12 @@ class ProfileDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         user = self.get_object()
-        user_posts = user.posts.all()
-        if self.request.user != user:
-            posts = get_posts(user_posts)
-        else:
-            posts = get_posts(user_posts, filter=False)
         return super().get_context_data(
             **kwargs,
             form=CommentForm(),
-            page_obj=get_paginator(self.request, posts))
+            page_obj=get_paginator(
+                self.request,
+                get_posts(user.posts.all(), filter=self.request.user != user)))
 
 
 class EditProfileUpdateView(LoginRequiredMixin,
@@ -147,6 +143,13 @@ class CommentMixin:
     def get_success_url(self):
         return reverse('blog:post_detail', args=[self.kwargs['post_id']])
 
+    def dispatch(self, request, *args, **kwargs):
+        if self.pk_url_kwarg in kwargs:
+            if self.request.user != self.get_object().author:
+                return redirect('blog:post_detail',
+                                post_id=self.kwargs['post_id'])
+        return super().dispatch(request, *args, **kwargs)
+
 
 class CommentCreateView(CommentMixin, LoginRequiredMixin, CreateView):
     form_class = CommentForm
@@ -160,16 +163,6 @@ class CommentCreateView(CommentMixin, LoginRequiredMixin, CreateView):
 class CommentUpdateView(CommentMixin, LoginRequiredMixin, UpdateView):
     form_class = CommentForm
 
-    def dispatch(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=self.kwargs[self.pk_url_kwarg])
-        if self.request.user != comment.author:
-            return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
-        return super().dispatch(request, *args, **kwargs)
-
 
 class CommentDeleteView(CommentMixin, LoginRequiredMixin, DeleteView):
-    def delete(self, request, *args, **kwargs):
-        comment = get_object_or_404(Comment, pk=self.kwargs[self.pk_url_kwarg])
-        if self.request.user != comment.author:
-            return redirect('blog:post_detail', post_id=self.kwargs['post_id'])
-        return super().delete(request, *args, **kwargs)
+    pass
