@@ -17,36 +17,37 @@ class OnlyAuthorMixin(UserPassesTestMixin):
         return self.get_object().author == self.request.user
 
 
-def get_posts(*args, **kwargs):
-    return Post.objects.select_related(*args).annotate(
-        comment_count=Count('comments')).filter(**kwargs).order_by('-pub_date')
+def get_posts(posts=Post.objects, related=True, filter=True, annotate=True):
+    if related:
+        posts = posts.select_related('author', 'category', 'location')
+    if filter:
+        posts = posts.filter(
+            is_published=True,
+            category__is_published=True,
+            pub_date__lte=datetime.now()
+        )
+    if annotate:
+        posts = posts.annotate(
+            comment_count=Count('comments')).order_by(*Post._meta.ordering)
+    return posts
 
 
 def get_paginator(request, queryset,
                   number_of_pages=10):
-    paginator = Paginator(queryset, number_of_pages)
-    page_number = request.GET.get('page')
-    return paginator.get_page(page_number)
+    return Paginator(queryset, number_of_pages
+                     ).get_page(request.GET.get('page'))
 
 
 def index(request):
     return render(request, 'blog/index.html', {
-        'page_obj': get_paginator(request, get_posts(
-            'author',
-            'location',
-            'category',
-            is_published=True,
-            category__is_published=True,
-            pub_date__lte=datetime.now()), 10)})
+        'page_obj': get_paginator(request, get_posts())})
 
 
 def post_detail(request, post_id):
-    post = get_object_or_404(get_posts(), pk=post_id)
+    post = get_object_or_404(
+        Post.objects, pk=post_id)
     if post.author != request.user:
-        post = get_object_or_404(
-            get_posts(is_published=True,
-                      category__is_published=True,
-                      pub_date__lte=datetime.now()), pk=post_id)
+        post = get_object_or_404(get_posts(related=False, annotate=False))
     return render(request, 'blog/detail.html', {
         'post': post,
         'form': CommentForm(),
@@ -60,14 +61,7 @@ def category_posts(request, category_slug):
                                  is_published=True)
     return render(request, 'blog/category.html', {
         'category': category,
-        'page_obj': get_paginator(
-            request, get_posts(
-                'author',
-                'location',
-                'category',
-                category=category,
-                is_published=True,
-                pub_date__lte=datetime.now()), 10)})
+        'page_obj': get_paginator(request, get_posts(category.posts))})
 
 
 class ProfileDetailView(DetailView):
@@ -79,17 +73,16 @@ class ProfileDetailView(DetailView):
         return get_object_or_404(User, username=self.kwargs['username'])
 
     def get_context_data(self, **kwargs):
+        user = self.get_object()
+        user_posts = user.posts.all()
+        if self.request.user != user:
+            posts = get_posts(user_posts)
+        else:
+            posts = get_posts(user_posts, filter=False)
         return super().get_context_data(
             **kwargs,
             form=CommentForm(),
-            comment=self.object.comments.select_related('author').all(),
-            page_obj=get_paginator(
-                self.request,
-                self.object.posts.select_related('author',
-                                                 'location',
-                                                 'category')
-                .annotate(comment_count=Count('comments'))
-                .order_by('-pub_date'), 10))
+            page_obj=get_paginator(self.request, posts))
 
 
 class EditProfileUpdateView(LoginRequiredMixin,
@@ -104,7 +97,7 @@ class EditProfileUpdateView(LoginRequiredMixin,
 
     def get_success_url(self):
         return reverse(
-            'blog:profile', args={self.request.user.username})
+            'blog:profile', args=(self.request.user.username,))
 
     def test_func(self):
         return self.get_object() == self.request.user
@@ -113,24 +106,24 @@ class EditProfileUpdateView(LoginRequiredMixin,
 @login_required
 def create_post(request):
     form = PostForm(request.POST or None, files=request.FILES or None)
-    if form.is_valid():
-        post = form.save(commit=False)
-        post.author = request.user
-        post.save()
-        return redirect('blog:profile', username=request.user.username)
-    return render(request, 'blog/create.html', {'form': form})
+    if not form.is_valid():
+        return render(request, 'blog/create.html', {'form': form})
+    post = form.save(commit=False)
+    post.author = request.user
+    post.save()
+    return redirect('blog:profile', request.user.username)
 
 
 @login_required
 def edit_post(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
     if post.author != request.user:
-        return redirect('blog:post_detail', post_id=post_id)
+        return redirect('blog:post_detail', post_id)
     form = PostForm(
         request.POST or None, files=request.FILES or None, instance=post)
     if form.is_valid():
         form.save()
-        return redirect('blog:post_detail', post_id=post.id)
+        return redirect('blog:post_detail', post.id)
     return render(request, 'blog/create.html', {'form': form})
 
 
@@ -144,16 +137,6 @@ def delete_post(request, post_id=None):
         return redirect('blog:profile', username=request.user.username)
     return render(request, 'blog/create.html',
                   {'form': PostForm(instance=instance)})
-
-
-def get_post_data(kwargs):
-    return get_object_or_404(
-        Post,
-        pk=kwargs['post_id'],
-        pub_date__lte=datetime.now(),
-        is_published=True,
-        category__is_published=True,
-    )
 
 
 class CommentMixin:
