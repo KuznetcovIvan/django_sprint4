@@ -2,12 +2,12 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Count
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
 
-from .forms import PostForm, CommentForm, EditProfileForm
+from .forms import CommentForm, EditProfileForm, PostForm
 from .models import Category, Comment, Post, User
 
 
@@ -55,7 +55,8 @@ def category_posts(request, category_slug):
                                  is_published=True)
     return render(request, 'blog/category.html', {
         'category': category,
-        'page_obj': get_paginator(request, get_posts(category.posts))})
+        'page_obj': get_paginator(request, get_posts(category.posts))
+    })
 
 
 class ProfileDetailView(DetailView):
@@ -73,7 +74,8 @@ class ProfileDetailView(DetailView):
             form=CommentForm(),
             page_obj=get_paginator(
                 self.request,
-                get_posts(user.posts.all(), filter=self.request.user != user)))
+                get_posts(user.posts.all(), filter=self.request.user != user))
+        )
 
 
 class EditProfileUpdateView(LoginRequiredMixin,
